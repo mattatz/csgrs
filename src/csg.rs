@@ -245,8 +245,8 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          +-------+            +-------+
     // 
     pub fn union(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
-        let mut a = Node::new(&self.polygons);
-        let mut b = Node::new(&other.polygons);
+        let mut a = Node::new(&self.polygons)?;
+        let mut b = Node::new(&other.polygons)?;
 
         a.clip_to(&b);
         b.clip_to(&a);
@@ -307,8 +307,8 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          +-------+
     // 
     pub fn difference(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
-        let mut a = Node::new(&self.polygons);
-        let mut b = Node::new(&other.polygons);
+        let mut a = Node::new(&self.polygons)?;
+        let mut b = Node::new(&other.polygons)?;
 
         a.invert();
         a.clip_to(&b);
@@ -362,8 +362,8 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          +-------+
     // 
     pub fn intersection(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
-        let mut a = Node::new(&self.polygons);
-        let mut b = Node::new(&other.polygons);
+        let mut a = Node::new(&self.polygons)?;
+        let mut b = Node::new(&other.polygons)?;
 
         a.invert();
         b.clip_to(&a);
@@ -3175,9 +3175,9 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     /// //   - Or empty if no intersection
     /// ```
     #[cfg(feature = "hashmap")]
-    pub fn slice(&self, plane: Plane) -> CSG<S> {
+    pub fn slice(&self, plane: Plane) -> anyhow::Result<CSG<S>> {
         // Build a BSP from all of our polygons:
-        let node = Node::new(&self.polygons.clone());
+        let node = Node::new(&self.polygons.clone())?;
 
         // Ask the BSP for coplanar polygons + intersection edges:
         let (coplanar_polys, intersection_edges) = node.slice(&plane);
@@ -3224,11 +3224,11 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         }
 
         // Return a purely 2D CSG: polygons empty, geometry has the final shape
-        CSG {
+        Ok(CSG {
             polygons: Vec::new(),
             geometry: new_gc,
             metadata: self.metadata.clone(),
-        }
+        })
     }
 
     /// Create **2D text** (outlines only) in the XY plane using ttf-utils + ttf-parser.

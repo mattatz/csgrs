@@ -19,7 +19,7 @@ pub struct Node<S: Clone> {
 }
 
 impl<S: Clone + Send + Sync> Node<S> {
-    pub fn new(polygons: &[Polygon<S>]) -> Self {
+    pub fn new(polygons: &[Polygon<S>]) -> anyhow::Result<Self> {
         let mut node = Node {
             plane: None,
             front: None,
@@ -27,9 +27,9 @@ impl<S: Clone + Send + Sync> Node<S> {
             polygons: Vec::new(),
         };
         if !polygons.is_empty() {
-            node.build(polygons);
+            node.build(polygons)?;
         }
-        node
+        Ok(node)
     }
 
     /// Invert all polygons in the BSP tree
@@ -283,7 +283,7 @@ impl<S: Clone + Send + Sync> Node<S> {
         // Recursively build the front subtree.
         if !front.is_empty() {
             if self.front.is_none() {
-                self.front = Some(Box::new(Node::new(&[])));
+                self.front = Some(Box::new(Node::new(&[])?));
             }
             self.front.as_mut().unwrap().build(&front)?;
         }
@@ -291,7 +291,7 @@ impl<S: Clone + Send + Sync> Node<S> {
         // Recursively build the back subtree.
         if !back.is_empty() {
             if self.back.is_none() {
-                self.back = Some(Box::new(Node::new(&[])));
+                self.back = Some(Box::new(Node::new(&[])?));
             }
             self.back.as_mut().unwrap().build(&back)?;
         }
