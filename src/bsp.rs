@@ -255,7 +255,8 @@ impl<S: Clone + Send + Sync> Node<S> {
         }
 
         // Choose the first polygon's plane as the splitting plane if not already set.
-        if self.plane.is_none() {
+        let has_no_plane = self.plane.is_none();
+        if has_no_plane {
             self.plane = Some(polygons[0].plane.clone());
         }
         let plane = self.plane.clone().unwrap();
@@ -279,6 +280,12 @@ impl<S: Clone + Send + Sync> Node<S> {
             self.polygons.append(&mut coplanar_front);
             self.polygons.append(&mut coplanar_back);
         }
+
+        // the following cases cause stack overflow
+        // the first element of polygons is used to extract the plane, but the result of split is all in the same front/back,
+        // so the recursive build causes stack overflow
+        anyhow::ensure!(!has_no_plane || front.len() != polygons.len(), "all polygons are front");
+        anyhow::ensure!(!has_no_plane || back.len() != polygons.len(), "all polygons are back");
 
         // Recursively build the front subtree.
         if !front.is_empty() {
