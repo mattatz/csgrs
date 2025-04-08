@@ -17,7 +17,7 @@ use csgrs::csg::MetaBall;
 // A type alias for convenience: no shared data, i.e. S = ()
 type CSG = csgrs::csg::CSG<()>;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     // Ensure the /stls folder exists
     let _ = fs::create_dir_all("stl");
 
@@ -48,15 +48,15 @@ fn main() {
     let _ = fs::write("stl/cube_mirrored_x.stl", mirrored_cube.to_stl_binary("cube_mirrored_x").unwrap());
 
     // 3) Boolean operations: Union, Subtract, Intersect
-    let union_shape = moved_cube.union(&sphere);
+    let union_shape = moved_cube.union(&sphere)?;
     #[cfg(feature = "stl-io")]
     let _ = fs::write("stl/union_cube_sphere.stl", union_shape.to_stl_binary("union_cube_sphere").unwrap());
 
-    let subtract_shape = moved_cube.difference(&sphere);
+    let subtract_shape = moved_cube.difference(&sphere)?;
     #[cfg(feature = "stl-io")]
     let _ = fs::write("stl/subtract_cube_sphere.stl", subtract_shape.to_stl_binary("subtract_cube_sphere").unwrap());
 
-    let intersect_shape = moved_cube.intersection(&sphere);
+    let intersect_shape = moved_cube.intersection(&sphere)?;
     #[cfg(feature = "stl-io")]
     let _ = fs::write("stl/intersect_cube_sphere.stl", intersect_shape.to_stl_binary("intersect_cube_sphere").unwrap());
 
@@ -189,7 +189,7 @@ fn main() {
 
     let sphere_test = CSG::sphere(1.0, 16, 8, None);
     let cube_test = CSG::cube(1.0, 1.0, 1.0, None);
-    let res = cube_test.difference(&sphere_test);
+    let res = cube_test.difference(&sphere_test)?;
     #[cfg(feature = "stl-io")]
     let _ = fs::write("stl/sphere_cube_test.stl", res.to_stl_binary("sphere_cube_test").unwrap());
     assert_eq!(res.bounding_box(), cube_test.bounding_box());
@@ -258,42 +258,42 @@ fn main() {
     
     // Distribute a square along an arc
     let square = CSG::square(1.0, 1.0, None);
-    let arc_array = square.distribute_arc(5, 5.0, 0.0, 180.0);
+    let arc_array = square.distribute_arc(5, 5.0, 0.0, 180.0)?;
     let _ = fs::write("stl/arc_array.stl", arc_array.to_stl_ascii("arc_array"));
     
     // Distribute that wedge along a linear axis
-    let wedge_line = wedge.distribute_linear(4, nalgebra::Vector3::new(1.0, 0.0, 0.0), 3.0);
+    let wedge_line = wedge.distribute_linear(4, nalgebra::Vector3::new(1.0, 0.0, 0.0), 3.0)?;
     let _ = fs::write("stl/wedge_line.stl", wedge_line.to_stl_ascii("wedge_line"));
     
     // Make a 4x4 grid of the supershape
-    let grid_of_ss = sshape.distribute_grid(4, 4, 3.0, 3.0);
+    let grid_of_ss = sshape.distribute_grid(4, 4, 3.0, 3.0)?;
     let _ = fs::write("stl/grid_of_ss.stl", grid_of_ss.to_stl_ascii("grid_of_ss"));
     
     // 1. Circle with keyway
-    let keyway_shape = CSG::circle_with_keyway(10.0, 64, 2.0, 3.0, None);
+    let keyway_shape = CSG::circle_with_keyway(10.0, 64, 2.0, 3.0, None)?;
     let _ = fs::write("stl/keyway_shape.stl", keyway_shape.to_stl_ascii("keyway_shape"));
     // Extrude it 2 units:
     let keyway_3d = keyway_shape.extrude(2.0);
     let _ = fs::write("stl/keyway_3d.stl", keyway_3d.to_stl_ascii("keyway_3d"));
 
     // 2. D-shape
-    let d_shape = CSG::circle_with_flat(5.0, 32, 2.0, None);
+    let d_shape = CSG::circle_with_flat(5.0, 32, 2.0, None)?;
     let _ = fs::write("stl/d_shape.stl", d_shape.to_stl_ascii("d_shape"));
     let d_3d = d_shape.extrude(1.0);
     let _ = fs::write("stl/d_3d.stl", d_3d.to_stl_ascii("d_3d"));
 
     // 3. Double-flat circle
-    let double_flat = CSG::circle_with_two_flats(8.0, 64, 3.0, None);
+    let double_flat = CSG::circle_with_two_flats(8.0, 64, 3.0, None)?;
     let _ = fs::write("stl/double_flat.stl", double_flat.to_stl_ascii("double_flat"));
     let df_3d = double_flat.extrude(0.5);
     let _ = fs::write("stl/df_3d.stl", df_3d.to_stl_ascii("df_3d"));
     
     // A 3D teardrop shape
-    let teardrop_solid = CSG::teardrop(3.0, 5.0, 32, 32, None);
+    let teardrop_solid = CSG::teardrop(3.0, 5.0, 32, 32, None)?;
     let _ = fs::write("stl/teardrop_solid.stl", teardrop_solid.to_stl_ascii("teardrop_solid"));
     
     // A 3D egg shape
-    let egg_solid = CSG::egg(2.0, 4.0, 8, 16, None);
+    let egg_solid = CSG::egg(2.0, 4.0, 8, 16, None)?;
     let _ = fs::write("stl/egg_solid.stl", egg_solid.to_stl_ascii("egg_solid"));
     
     // An ellipsoid with X radius=2, Y radius=1, Z radius=3
@@ -384,7 +384,9 @@ fn main() {
     // Let's reuse the `cube` from above:
     #[cfg(feature = "stl-io")]
     {
-        let gyroid_inside_cube = cube.gyroid(32, 2.0, 0.0, None);
+        let gyroid_inside_cube = cube.gyroid(32, 2.0, 0.0, None)?;
         let _ = fs::write("stl/gyroid_cube.stl", gyroid_inside_cube.to_stl_binary("gyroid_cube").unwrap());
     }
+
+    Ok(())
 }

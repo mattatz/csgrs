@@ -583,7 +583,7 @@ fn test_csg_union() {
     let cube1: CSG<()> = CSG::cube(2.0, 2.0, 2.0, None).translate(-1.0, -1.0, -1.0); // from -1 to +1 in all coords
     let cube2: CSG<()> = CSG::cube(1.0, 1.0, 1.0, None).translate(0.5, 0.5, 0.5);
 
-    let union_csg = cube1.union(&cube2);
+    let union_csg = cube1.union(&cube2).unwrap();
     let polys = union_csg.to_polygons();
     assert!(
         !polys.is_empty(),
@@ -606,7 +606,7 @@ fn test_csg_difference() {
     let big_cube: CSG<()> = CSG::cube(4.0, 4.0, 4.0, None).translate(-2.0, -2.0, -2.0); // radius=2 => spans [-2,2]
     let small_cube: CSG<()> = CSG::cube(2.0, 2.0, 2.0, None).translate(-1.0, -1.0, -1.0); // radius=1 => spans [-1,1]
 
-    let result = big_cube.difference(&small_cube);
+    let result = big_cube.difference(&small_cube).unwrap();
     let polys = result.to_polygons();
     assert!(
         !polys.is_empty(),
@@ -624,7 +624,7 @@ fn test_csg_difference() {
 fn test_csg_union2() {
     let c1: CSG<()> = CSG::cube(2.0, 2.0, 2.0, None); // cube from (-1..+1) if that's how you set radius=1 by default
     let c2: CSG<()> = CSG::sphere(1.0, 16, 8, None); // default sphere radius=1
-    let unioned = c1.union(&c2);
+    let unioned = c1.union(&c2).unwrap();
     // We can check bounding box is bigger or at least not smaller than either shape’s box
     let bb_union = unioned.bounding_box();
     let bb_cube = c1.bounding_box();
@@ -637,7 +637,7 @@ fn test_csg_union2() {
 fn test_csg_intersect() {
     let c1: CSG<()> = CSG::cube(2.0, 2.0, 2.0, None);
     let c2: CSG<()> = CSG::sphere(1.0, 16, 8, None);
-    let isect = c1.intersection(&c2);
+    let isect = c1.intersection(&c2).unwrap();
     let bb_isect = isect.bounding_box();
     // The intersection bounding box should be smaller than or equal to each
     let bb_cube = c1.bounding_box();
@@ -653,7 +653,7 @@ fn test_csg_intersect2() {
     let sphere: CSG<()> = CSG::sphere(1.0, 16, 8, None);
     let cube: CSG<()> = CSG::cube(2.0, 2.0, 2.0, None);
 
-    let intersection = sphere.intersection(&cube);
+    let intersection = sphere.intersection(&cube).unwrap();
     let polys = intersection.to_polygons();
     assert!(
         !polys.is_empty(),
@@ -1167,7 +1167,7 @@ fn test_union_metadata() {
     }
 
     // Union
-    let union_csg = sq1.union(&sq2);
+    let union_csg = sq1.union(&sq2).unwrap();
 
     // Depending on the library's polygon splitting, we often end up with multiple polygons.
     // We can at least confirm that each polygon's shared data is EITHER "Square1" or "Square2",
@@ -1198,7 +1198,7 @@ fn test_difference_metadata() {
         p.set_metadata("Cube2".to_string());
     }
 
-    let result = cube1.difference(&cube2);
+    let result = cube1.difference(&cube2).unwrap();
 
     // All polygons in the result should come from "Cube1" only.
     for poly in &result.polygons {
@@ -1225,7 +1225,7 @@ fn test_intersect_metadata() {
         p.set_metadata("Cube2".to_string());
     }
 
-    let result = cube1.intersection(&cube2);
+    let result = cube1.intersection(&cube2).unwrap();
 
     // Depending on the implementation, it's common that intersection polygons are
     // actually from both shapes or from shape A. Let's check that if they do have shared data,
@@ -1319,7 +1319,7 @@ fn test_complex_metadata_struct_in_boolean_ops() {
         p.set_metadata(Color(0, 255, 0));
     }
 
-    let unioned = csg1.union(&csg2);
+    let unioned = csg1.union(&csg2).unwrap();
     // Now polygons are either from csg1 (red) or csg2 (green).
     for poly in &unioned.polygons {
         let col = poly.metadata().unwrap();
@@ -1552,7 +1552,7 @@ fn test_union_of_extruded_shapes() {
     let csg2 = CSG::extrude_between(&bottom2, &top2, true);
 
     // Union them
-    let unioned = csg1.union(&csg2);
+    let unioned = csg1.union(&csg2).unwrap();
 
     // Sanity check: union shouldn’t be empty
     assert!(!unioned.polygons.is_empty());

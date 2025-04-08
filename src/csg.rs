@@ -244,7 +244,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          |       |            |       |
     //          +-------+            +-------+
     // 
-    pub fn union(&self, other: &CSG<S>) -> CSG<S> {
+    pub fn union(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
         let mut a = Node::new(&self.polygons);
         let mut b = Node::new(&other.polygons);
 
@@ -253,7 +253,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         b.invert();
         b.clip_to(&a);
         b.invert();
-        a.build(&b.all_polygons());
+        a.build(&b.all_polygons())?;
         
         // Extract polygons from geometry
         let polys1 = gc_to_polygons(&self.geometry);
@@ -285,11 +285,11 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             }
         }
 
-        CSG {
+        Ok(CSG {
             polygons: a.all_polygons(),
             geometry: final_gc,
             metadata: self.metadata.clone(),
-        }
+        })
     }
 
     // Return a new CSG representing space in this CSG but not in the
@@ -306,7 +306,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          |       |
     //          +-------+
     // 
-    pub fn difference(&self, other: &CSG<S>) -> CSG<S> {
+    pub fn difference(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
         let mut a = Node::new(&self.polygons);
         let mut b = Node::new(&other.polygons);
 
@@ -316,7 +316,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         b.invert();
         b.clip_to(&a);
         b.invert();
-        a.build(&b.all_polygons());
+        a.build(&b.all_polygons())?;
         a.invert();
         
         // -- 2D geometry-based approach --
@@ -340,11 +340,11 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             }
         }
     
-        CSG {
+        Ok(CSG {
             polygons: a.all_polygons(),
             geometry: final_gc,
             metadata: self.metadata.clone(),
-        }
+        })
     }
 
     // Return a new CSG representing space in both this CSG and the
@@ -361,7 +361,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          |       |
     //          +-------+
     // 
-    pub fn intersection(&self, other: &CSG<S>) -> CSG<S> {
+    pub fn intersection(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
         let mut a = Node::new(&self.polygons);
         let mut b = Node::new(&other.polygons);
 
@@ -370,7 +370,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         b.invert();
         a.clip_to(&b);
         b.clip_to(&a);
-        a.build(&b.all_polygons());
+        a.build(&b.all_polygons())?;
         a.invert();
         
         // -- 2D geometry-based approach --
@@ -400,11 +400,11 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             }
         }
     
-        CSG {
+        Ok(CSG {
             polygons: a.all_polygons(),
             geometry: final_gc,
             metadata: self.metadata.clone(),
-        }
+        })
     }
     
     // Return a new CSG representing space in this CSG excluding the space in the
@@ -422,12 +422,12 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     //          |       |            |       |
     //          +-------+            +-------+
     // 
-    pub fn xor(&self, other: &CSG<S>) -> CSG<S> {
+    pub fn xor(&self, other: &CSG<S>) -> anyhow::Result<CSG<S>> {
         // A \ B
-        let a_sub_b = self.difference(other);
+        let a_sub_b = self.difference(other)?;
     
         // B \ A
-        let b_sub_a = other.difference(self);
+        let b_sub_a = other.difference(self)?;
     
         // Union those two
         a_sub_b.union(&b_sub_a)
@@ -1199,7 +1199,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         key_width: Real,
         key_depth: Real,
         metadata: Option<S>,
-    ) -> CSG<S> {
+    ) -> anyhow::Result<CSG<S>> {
         // 1. Full circle
         let circle = CSG::circle(radius, segments, metadata.clone());
     
@@ -1229,7 +1229,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         segments: usize,
         flat_dist: Real,
         metadata: Option<S>,
-    ) -> CSG<S> {
+    ) -> anyhow::Result<CSG<S>> {
         // 1. Full circle
         let circle = CSG::circle(radius, segments, metadata.clone());
     
@@ -1257,7 +1257,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         segments: usize,
         flat_dist: Real,
         metadata: Option<S>,
-    ) -> CSG<S> {
+    ) -> anyhow::Result<CSG<S>> {
         // 1. Full circle
         let circle = CSG::circle(radius, segments, metadata.clone());
     
@@ -1273,7 +1273,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             .translate(-radius, -cutter_height - flat_dist, 0.0);
     
         // 4. Subtract both
-        let with_top_flat = circle.difference(&top_rect);
+        let with_top_flat = circle.difference(&top_rect)?;
         let with_both_flats = with_top_flat.difference(&bottom_rect);
     
         with_both_flats
@@ -1646,7 +1646,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         revolve_segments: usize,
         outline_segments: usize,
         metadata: Option<S>,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         let egg_2d = Self::egg_outline(width, length, outline_segments, metadata.clone());
         
         // Build a large rectangle that cuts off everything
@@ -1654,9 +1654,9 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         let rect_cutter = CSG::square(cutter_height, cutter_height, metadata.clone())
             .translate(-cutter_height, -cutter_height/2.0, 0.0);
     
-        let half_egg = egg_2d.difference(&rect_cutter);
+        let half_egg = egg_2d.difference(&rect_cutter)?;
         
-        half_egg.rotate_extrude(360.0, revolve_segments).convex_hull()
+        Ok(half_egg.rotate_extrude(360.0, revolve_segments).convex_hull())
     }
     
     /// Creates a 3D "teardrop" solid by revolving the existing 2D `teardrop` profile 360° around the Y-axis (via rotate_extrude).
@@ -1673,7 +1673,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         revolve_segments: usize,
         shape_segments: usize,
         metadata: Option<S>,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         // Make a 2D teardrop in the XY plane.
         let td_2d = Self::teardrop_outline(width, length, shape_segments, metadata.clone());
 
@@ -1682,10 +1682,10 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         let rect_cutter = CSG::square(cutter_height, cutter_height, metadata.clone())
             .translate(-cutter_height, -cutter_height/2.0, 0.0);
     
-        let half_teardrop = td_2d.difference(&rect_cutter);
+        let half_teardrop = td_2d.difference(&rect_cutter)?;
 
         // revolve 360 degrees
-        half_teardrop.rotate_extrude(360.0, revolve_segments).convex_hull()
+        Ok(half_teardrop.rotate_extrude(360.0, revolve_segments).convex_hull())
     }
 
     /// Creates a 3D "teardrop cylinder" by extruding the existing 2D `teardrop` in the Z+ axis.
@@ -1898,9 +1898,9 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         radius: Real,
         start_angle_deg: Real,
         end_angle_deg: Real,
-    ) -> CSG<S> {
+    ) -> anyhow::Result<CSG<S>> {
         if count < 1 {
-            return self.clone();
+            return Ok(self.clone());
         }
         let start_rad = start_angle_deg.to_radians();
         let end_rad   = end_angle_deg.to_radians();
@@ -1929,15 +1929,15 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             let mat   = rot * trans;
 
             // Transform a copy of self and union with other copies
-            all_csg = all_csg.union(&self.transform(&mat));
+            all_csg = all_csg.union(&self.transform(&mat))?;
         }
 
         // Put it in a new CSG
-        CSG {
+        Ok(CSG {
             polygons: all_csg.polygons,
             geometry: all_csg.geometry,
             metadata: self.metadata.clone(),
-        }
+        })
     }
     
     /// Distribute this CSG `count` times along a straight line (vector),
@@ -1949,9 +1949,9 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         count: usize,
         dir: nalgebra::Vector3<Real>,
         spacing: Real,
-    ) -> CSG<S> {
+    ) -> anyhow::Result<CSG<S>> {
         if count < 1 {
-            return self.clone();
+            return Ok(self.clone());
         }
         let step = dir.normalize() * spacing;
     
@@ -1963,22 +1963,22 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
             let trans   = nalgebra::Translation3::from(offset).to_homogeneous();
     
             // Transform a copy of self and union with other copies
-            all_csg = all_csg.union(&self.transform(&trans));
+            all_csg = all_csg.union(&self.transform(&trans))?;
         }
     
         // Put it in a new CSG
-        CSG {
+        Ok(CSG {
             polygons: all_csg.polygons,
             geometry: all_csg.geometry,
             metadata: self.metadata.clone(),
-        }
+        })
     }
 
     /// Distribute this CSG in a grid of `rows x cols`, with spacing dx, dy in XY plane.
     /// top-left or bottom-left depends on your usage of row/col iteration.
-    pub fn distribute_grid(&self, rows: usize, cols: usize, dx: Real, dy: Real) -> CSG<S> {
+    pub fn distribute_grid(&self, rows: usize, cols: usize, dx: Real, dy: Real) -> anyhow::Result<CSG<S>> {
         if rows < 1 || cols < 1 {
-            return self.clone();
+            return Ok(self.clone());
         }
         let step_x = nalgebra::Vector3::new(dx, 0.0, 0.0);
         let step_y = nalgebra::Vector3::new(0.0, dy, 0.0);
@@ -1992,16 +1992,16 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
                 let trans  = nalgebra::Translation3::from(offset).to_homogeneous();
     
                 // Transform a copy of self and union with other copies
-                all_csg = all_csg.union(&self.transform(&trans));
+                all_csg = all_csg.union(&self.transform(&trans))?;
             }
         }
     
         // Put it in a new CSG
-        CSG {
+        Ok(CSG {
             polygons: all_csg.polygons,
             geometry: all_csg.geometry,
             metadata: self.metadata.clone(),
-        }
+        })
     }
 
     /// Compute the convex hull of all vertices in this CSG.
@@ -3602,7 +3602,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
     /// // Suppose `shape` is a CSG volume, e.g. a box or sphere.
     /// let gyroid_csg = shape.tpms_gyroid(50, 2.0, 0.0);
     /// ```
-    pub fn gyroid(&self, resolution: usize, period: Real, iso_value: Real, metadata: Option<S>) -> CSG<S> {
+    pub fn gyroid(&self, resolution: usize, period: Real, iso_value: Real, metadata: Option<S>) -> anyhow::Result<CSG<S>> {
         // Get bounding box of `self`.
         let aabb = self.bounding_box();
 
@@ -3615,7 +3615,7 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         // a simple "marching cubes" step.
         if resolution < 2 {
             // degenerate sampling => no real geometry
-            return CSG::new();
+            return Ok(CSG::new());
         }
 
         // Cell size in each dimension
