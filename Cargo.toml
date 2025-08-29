@@ -24,9 +24,9 @@ lto = true
 # core2 = { version = "0.4.0", default_features = false, features = ["alloc"] } # no-std, still throws errors
 core2 = { version = "0.4.0", features = ["alloc"] }
 nalgebra = "0.34"
-geo = { version = "0.29.3", default-features = false, features = ["earcutr"] }
+geo = { version = "0.30.0", default-features = false, features = ["earcutr"] }
 #geo-booleanop = "0.3.2"
-geo-buf = { version = "0.1.0", optional = true } # straight-skeleton offsetting iOverlay can handle this in v2
+#geo-buf = { version = "0.1.0", optional = true } # straight-skeleton offsetting iOverlay can handle this in v2
 chull = { version = "0.2.4", optional = true }
 dxf = { version = "0.6.0", optional = true }
 rapier3d-f64 = { version = "0.28.0", optional = true }
@@ -45,7 +45,7 @@ hashbrown = { version = "0.15.2", optional = true }
 anyhow = "1.0.97"
 
 [features]
-default = ["f64", "stl-io", "dxf-io", "truetype-text", "hershey-text", "chull-io", "image-io", "metaballs", "hashmap", "sdf", "offset"]
+default = ["f64", "stl-io", "dxf-io", "truetype-text", "hershey-text", "chull-io", "image-io", "metaballs", "hashmap", "sdf"]
 parallel = [
     "rayon",
     "geo/multithreading",
@@ -86,7 +86,4 @@ hashmap = [ # slice and related helper functions, is_manifold()
 ]
 sdf = [
   "fast-surface-nets",
-]
-offset = [
-  "geo-buf",
 ]

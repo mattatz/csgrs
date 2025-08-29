@@ -51,9 +51,6 @@ use stl_io;
 #[cfg(feature = "image-io")]
 use image::GrayImage;
 
-#[cfg(feature = "offset")]
-use geo_buf::{ buffer_polygon, buffer_multi_polygon, };
-
 #[cfg(any(feature = "metaballs", feature = "sdf"))]
 use fast_surface_nets::{surface_nets, SurfaceNetsBuffer};
 
@@ -3054,40 +3051,6 @@ impl<S: Clone + Debug> CSG<S> where S: Clone + Send + Sync {
         let mins = Point3::new(min_x, min_y, min_z);
         let maxs = Point3::new(max_x, max_y, max_z);
         Aabb::new(mins, maxs)
-    }
-
-    /// Grows/shrinks/offsets all polygons in the XY plane by `distance` using cavalier_contours parallel_offset.
-    /// for each Polygon we convert to a cavalier_contours Polyline<Real> and call parallel_offset
-    #[cfg(feature = "offset")]
-    pub fn offset(&self, distance: Real) -> CSG<S> {
-        // For each Geometry in the collection:
-        //   - If it's a Polygon, buffer it and store the result as a MultiPolygon
-        //   - If it's a MultiPolygon, buffer it directly
-        //   - Otherwise, ignore (exclude) it from the new collection
-        let offset_geoms = self.geometry
-            .iter()
-            .filter_map(|geom| match geom {
-                Geometry::Polygon(poly) => {
-                    let new_mpoly = buffer_polygon(poly, distance);
-                    Some(Geometry::MultiPolygon(new_mpoly))
-                }
-                Geometry::MultiPolygon(mpoly) => {
-                    let new_mpoly = buffer_multi_polygon(mpoly, distance);
-                    Some(Geometry::MultiPolygon(new_mpoly))
-                }
-                _ => None, // ignore other geometry types
-            })
-            .collect();
-    
-        // Construct a new GeometryCollection from the offset geometries
-        let new_collection = GeometryCollection(offset_geoms);
-    
-        // Return a new CSG using the offset geometry collection and the old polygons/metadata
-        CSG {
-            polygons: self.polygons.clone(),
-            geometry: new_collection,
-            metadata: self.metadata.clone(),
-        }
     }
 
     /// Flattens any 3D polygons by projecting them onto the XY plane (z=0),
